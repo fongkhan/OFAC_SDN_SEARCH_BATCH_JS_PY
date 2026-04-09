@@ -186,7 +186,7 @@ document.getElementById('exportCsvBtn').addEventListener('click', () => {
     let fNames = availableFeatureTypes;
     
     const rows = [
-        ["ID", "Primary_Name", "Type", "Aliases", ...fNames]
+        ["ID", "Primary_Name", "Type", "PartyComment", "Aliases", ...fNames]
     ];
     
     currentUniqueRawData.forEach(p => {
@@ -254,10 +254,13 @@ document.getElementById('exportCsvBtn').addEventListener('click', () => {
         
         const clean = (str) => typeof str === 'string' ? `"${str.replace(/"/g, '""')}"` : '""';
         
+        let pComment = p.DistinctPartyComment || "";
+        
         let rowData = [
             clean(p.ID),
             clean(primaryName),
             clean(pType),
+            clean(pComment),
             clean(aliases.join("; "))
         ];
         

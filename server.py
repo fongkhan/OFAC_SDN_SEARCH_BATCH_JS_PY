@@ -80,22 +80,35 @@ class OFACDatabase:
                 in_locs = False
                 self.references['Location'] = self.locations
                 
-            if event == 'end' and tag == 'Profile':
-                pid = elem.attrib.get('ID')
+            if event == 'end' and tag == 'DistinctParty':
+                ns = elem.tag.split('}')[0] + '}'
+                prof_elem = elem.find(f'{ns}Profile')
+                if prof_elem is None:
+                    elem.clear()
+                    continue
+                    
+                pid = prof_elem.attrib.get('ID')
                 if not pid:
                     elem.clear()
                     continue
                 
                 # Extract names for index
                 names = []
-                for np_val in elem.iter(f"{elem.tag.split('}')[0]}}}NamePartValue"):
+                for np_val in prof_elem.iter(f"{ns}NamePartValue"):
                     if np_val.text:
                         names.append(np_val.text.strip())
                 
                 search_text = (" ".join(names) + " " + pid).lower()
                 self.search_index.append((search_text, pid))
                 
-                self.profiles[pid] = self._elem_to_dict(elem)
+                prof_dict = self._elem_to_dict(prof_elem)
+                
+                # Extract Comment
+                comment_elem = elem.find(f'{ns}Comment')
+                if comment_elem is not None and comment_elem.text:
+                    prof_dict['DistinctPartyComment'] = comment_elem.text.strip()
+                
+                self.profiles[pid] = prof_dict
                 
                 elem.clear()
                 count += 1
@@ -217,7 +230,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             feature_schema = db.references.get('FeatureType', {})
             f_names = sorted(list(set(feature_schema.values())))
             
-            headers = ["SearchTerm", "Matched", "OFAC_ID", "PrimaryName", "Type", "Aliases"] + f_names
+            headers = ["SearchTerm", "Matched", "OFAC_ID", "PrimaryName", "Type", "PartyComment", "Aliases"] + f_names
             writer.writerow(headers)
             
             for row in reader:
@@ -270,15 +283,16 @@ class RequestHandler(BaseHTTPRequestHandler):
                             if detail.strip() and ftype in feature_map:
                                 feature_map[ftype].append(detail.strip())
 
+                    pComment = p.get('DistinctPartyComment', '')
                     row_data = [
-                        term, "Yes", p.get("ID", ""), primary_name, pType, "; ".join(aliases)
+                        term, "Yes", p.get("ID", ""), primary_name, pType, pComment, "; ".join(aliases)
                     ]
                     for fn in f_names:
                         row_data.append("; ".join(feature_map[fn]))
 
                     writer.writerow(row_data)
                 else:
-                    null_row = [term, "No", "", "", "", ""] + [""] * len(f_names)
+                    null_row = [term, "No", "", "", "", "", ""] + [""] * len(f_names)
                     writer.writerow(null_row)
                     
             self.send_response(200)
