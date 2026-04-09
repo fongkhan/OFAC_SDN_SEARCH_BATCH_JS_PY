@@ -9,6 +9,9 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     });
 });
 
+let currentUniqueRawData = [];
+let availableFeatureTypes = [];
+
 // Check Server Status
 async function checkStatus() {
     try {
@@ -18,6 +21,10 @@ async function checkStatus() {
         if (data.loaded) {
             statEl.textContent = `Online (${data.profile_count} profiles active)`;
             statEl.style.color = '#7ee787';
+            if (data.feature_types) {
+                const fSet = new Set(Object.values(data.feature_types));
+                availableFeatureTypes = Array.from(fSet).sort();
+            }
         } else {
             statEl.textContent = 'Awaiting XML Load';
             statEl.style.color = '#f85149';
@@ -62,7 +69,6 @@ document.getElementById('uploadXmlBtn').addEventListener('click', async () => {
 });
 
 // Unique Search
-let currentUniqueRawData = [];
 
 document.getElementById('searchBtn').addEventListener('click', async () => {
     const q = document.getElementById('searchInput').value.trim();
@@ -177,8 +183,10 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
 document.getElementById('exportCsvBtn').addEventListener('click', () => {
     if(!currentUniqueRawData.length) return;
     
+    let fNames = availableFeatureTypes;
+    
     const rows = [
-        ["ID", "Primary_Name", "Type", "Aliases", "Locations", "Features"]
+        ["ID", "Primary_Name", "Type", "Aliases", ...fNames]
     ];
     
     currentUniqueRawData.forEach(p => {
@@ -205,8 +213,9 @@ document.getElementById('exportCsvBtn').addEventListener('click', () => {
         }
         let pType = p.PartySubTypeID ? (p.PartySubTypeID.value || p.PartySubTypeID) : "Unknown";
         
-        let locations = [];
-        let features = [];
+        let featureMap = {};
+        fNames.forEach(fn => featureMap[fn] = []);
+        
         if (p.Feature) {
             p.Feature.forEach(f => {
                 const fType = f.FeatureTypeID ? (f.FeatureTypeID.value || f.FeatureTypeID) : "Unknown";
@@ -215,7 +224,8 @@ document.getElementById('exportCsvBtn').addEventListener('click', () => {
                         let detail = "";
                         if (v.VersionLocation && v.VersionLocation[0].LocationID) {
                             let locObj = v.VersionLocation[0].LocationID;
-                            locations.push((typeof locObj === 'object') ? (locObj.value || locObj.id || JSON.stringify(locObj)) : locObj);
+                            let locStr = (typeof locObj === 'object') ? (locObj.value || locObj.id || JSON.stringify(locObj)) : locObj;
+                            if (locStr) detail += locStr + " ";
                         }
                         if (v.VersionDetail) {
                             v.VersionDetail.forEach(vd => {
@@ -234,8 +244,8 @@ document.getElementById('exportCsvBtn').addEventListener('click', () => {
                                 }
                             });
                         }
-                        if (detail.trim()) {
-                            features.push(`${fType}: ${detail.trim()}`);
+                        if (detail.trim() && featureMap[fType]) {
+                            featureMap[fType].push(detail.trim());
                         }
                     });
                 }
@@ -244,14 +254,18 @@ document.getElementById('exportCsvBtn').addEventListener('click', () => {
         
         const clean = (str) => typeof str === 'string' ? `"${str.replace(/"/g, '""')}"` : '""';
         
-        rows.push([
+        let rowData = [
             clean(p.ID),
             clean(primaryName),
             clean(pType),
-            clean(aliases.join("; ")),
-            clean(locations.join("; ")),
-            clean(features.join("; "))
-        ]);
+            clean(aliases.join("; "))
+        ];
+        
+        fNames.forEach(fn => {
+            rowData.push(clean(featureMap[fn].join("; ")));
+        });
+        
+        rows.push(rowData);
     });
     
     const csvContent = rows.map(r => r.join(",")).join("\n");

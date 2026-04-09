@@ -168,7 +168,8 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(json.dumps({
                 "loaded": len(db.profiles) > 0,
-                "profile_count": len(db.profiles)
+                "profile_count": len(db.profiles),
+                "feature_types": db.references.get('FeatureType', {})
             }).encode('utf-8'))
             
         elif path == "/api/template":
@@ -212,7 +213,12 @@ class RequestHandler(BaseHTTPRequestHandler):
             
             output = io.StringIO()
             writer = csv.writer(output)
-            writer.writerow(["SearchTerm", "Matched", "OFAC_ID", "PrimaryName", "Type", "Aliases", "Locations", "Features"])
+            
+            feature_schema = db.references.get('FeatureType', {})
+            f_names = sorted(list(set(feature_schema.values())))
+            
+            headers = ["SearchTerm", "Matched", "OFAC_ID", "PrimaryName", "Type", "Aliases"] + f_names
+            writer.writerow(headers)
             
             for row in reader:
                 term = row.get("SearchTerm", "").strip()
@@ -236,17 +242,18 @@ class RequestHandler(BaseHTTPRequestHandler):
                                 if parts:
                                     aliases.append(" ".join(parts))
                                     
-                    locations = []
-                    features = []
+                    feature_map = {n: [] for n in f_names}
+                    
                     for f in p.get('Feature', []):
                         ftype = f.get('FeatureTypeID', {}).get('value', '') if isinstance(f.get('FeatureTypeID'), dict) else str(f.get('FeatureTypeID', ''))
+                        
                         for fv in f.get('FeatureVersion', []):
                             detail = ""
                             for loc in fv.get('VersionLocation', []):
                                 locid = loc.get('LocationID', {})
                                 loc_str = locid.get('value') or locid.get('id') if isinstance(locid, dict) else str(locid)
                                 if loc_str:
-                                    locations.append(loc_str)
+                                    detail += loc_str + " "
                             for vd in fv.get('VersionDetail', []):
                                 if 'text' in vd:
                                     detail += vd['text'] + " "
@@ -259,15 +266,20 @@ class RequestHandler(BaseHTTPRequestHandler):
                                     d = from_date.get('Day', [{}])[0].get('text', '')
                                     date_str = "-".join([x for x in [y, m, d] if x])
                                     detail += date_str + " "
-                            if detail.strip():
-                                features.append(f"{ftype}: {detail.strip()}")
+                            
+                            if detail.strip() and ftype in feature_map:
+                                feature_map[ftype].append(detail.strip())
 
-                    writer.writerow([
-                        term, "Yes", p.get("ID", ""), primary_name,
-                        pType, "; ".join(aliases), "; ".join(locations), "; ".join(features)
-                    ])
+                    row_data = [
+                        term, "Yes", p.get("ID", ""), primary_name, pType, "; ".join(aliases)
+                    ]
+                    for fn in f_names:
+                        row_data.append("; ".join(feature_map[fn]))
+
+                    writer.writerow(row_data)
                 else:
-                    writer.writerow([term, "No", "", "", "", "", "", ""])
+                    null_row = [term, "No", "", "", "", ""] + [""] * len(f_names)
+                    writer.writerow(null_row)
                     
             self.send_response(200)
             self.send_header('Content-type', 'text/csv')
