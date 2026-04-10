@@ -377,6 +377,13 @@ class RequestHandler(BaseHTTPRequestHandler):
                                 for vd in fv.get('VersionDetail', []):
                                     if 'text' in vd:
                                         detail += vd['text'] + " "
+                                    drObj = vd.get('DetailReferenceID', {})
+                                    drStr = drObj.get('value') or drObj.get('id') if isinstance(drObj, dict) else str(drObj)
+                                    if drStr and drStr != '{}':
+                                        detail += drStr + " "
+                                for c in fv.get('Comment', []):
+                                    if 'text' in c:
+                                        detail += "[" + c['text'] + "] "
                                 for dp in fv.get('DatePeriod', []):
                                     start = dp.get('Start', [])
                                     if start and 'From' in start[0]:

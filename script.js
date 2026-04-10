@@ -152,9 +152,19 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
                                 let locStr = (typeof locObj === 'object') ? (locObj.value || locObj.id || JSON.stringify(locObj)) : locObj;
                                 if (locStr) details += `<span class="ref">${locStr}</span> `;
                             }
+                            if (v.Comment) {
+                                v.Comment.forEach(c => {
+                                    if (c.text) details += "[" + c.text + "] ";
+                                });
+                            }
                             if (v.VersionDetail) {
                                 v.VersionDetail.forEach(vd => {
                                     if (vd.text) details += vd.text + " ";
+                                    if (vd.DetailReferenceID) {
+                                        let drObj = vd.DetailReferenceID;
+                                        let drStr = (typeof drObj === 'object') ? (drObj.value || drObj.id) : drObj;
+                                        if (drStr) details += drStr + " ";
+                                    }
                                 });
                             }
                             if (v.DatePeriod) {
@@ -242,9 +252,19 @@ document.getElementById('exportCsvBtn').addEventListener('click', () => {
                             let locStr = (typeof locObj === 'object') ? (locObj.value || locObj.id || JSON.stringify(locObj)) : locObj;
                             if (locStr) detail += locStr + " ";
                         }
+                        if (v.Comment) {
+                            v.Comment.forEach(c => {
+                                if (c.text) detail += c.text + " ";
+                            });
+                        }
                         if (v.VersionDetail) {
                             v.VersionDetail.forEach(vd => {
                                 if (vd.text) detail += vd.text + " ";
+                                if (vd.DetailReferenceID) {
+                                    let drObj = vd.DetailReferenceID;
+                                    let drStr = (typeof drObj === 'object') ? (drObj.value || drObj.id) : drObj;
+                                    if (drStr) detail += drStr + " ";
+                                }
                             });
                         }
                         if (v.DatePeriod) {
