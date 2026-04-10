@@ -1,15 +1,34 @@
 :root {
-    --bg-gradient: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
-    --glass-bg: rgba(255, 255, 255, 0.03);
+    --bg-gradient: linear-gradient(135deg, #0d1117, #161b22);
+    --glass-bg: rgba(30, 30, 30, 0.4);
     --glass-border: rgba(255, 255, 255, 0.1);
+    --text-color: #c9d1d9;
+    --text-muted: #8b949e;
     --primary-color: #58a6ff;
-    --primary-hover: #79c0ff;
+    --primary-hover: #3182ce;
     --secondary-color: #30363d;
     --secondary-hover: #484f58;
     --warning-color: #f85149;
     --warning-hover: #ff7b72;
-    --text-color: #c9d1d9;
-    --text-muted: #8b949e;
+}
+
+body.light-mode {
+    --bg-gradient: linear-gradient(135deg, #f0f2f5, #e1e4e8);
+    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-border: rgba(0, 0, 0, 0.1);
+    --text-color: #24292f;
+    --text-muted: #57606a;
+    --primary-color: #0969da;
+    --primary-hover: #0349b4;
+    --secondary-color: #d0d7de;
+    --secondary-hover: #c4cbcf;
+    --warning-color: #cf222e;
+    --warning-hover: #a40e26;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
 }
 
 body {

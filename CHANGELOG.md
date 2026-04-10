@@ -23,3 +23,7 @@ All notable changes to the **OFAC SDN Advanced Search API** project will be docu
 ## [1.4.0] - Raw Dataset DB Explorer
 - **Designed Interactive Explorer Grid Viewer**: Upgraded the auxiliary raw datastreams strictly from isolated download links seamlessly transitioning interfaces towards an interactive Javascript Sidebar mapping dynamic XML subset routing perfectly correctly on the fly seamlessly without generating overhead.
 - **Added Streaming Search Filters**: Connected queries across 117MB files natively bounded strictly via 100 chunk query limits seamlessly formatting JSON payload arrays instantly generating dynamic CSV Tables resolving structures successfully safely.
+
+## [1.4.1] - UX Quality of Life Adjustments
+- **Added Native Theme Toggling**: Integrated a real-time DOM structural CSS override button allowing users to shift the application from its standard dark-mode glassmorphic default into a complete Light-Mode matrix. Securely binds settings into browser `localStorage` to preserve interface configurations permanently across reloads entirely natively.
+- **Enabled 'Enter' Key Subscriptions**: Integrated `keypress` event listeners tracking specifically for `Enter` commands binding execution flows seamlessly over the Unique query input loops and Dataset structural viewers without requiring rigid localized mouse actions manually.

@@ -54,26 +54,42 @@ function formatAliasName(aliasNode, identNode) {
     return partsList.map(x=>x.text).join(' ');
 }
 
+// Theme Integration Setup
+const themeBtn = document.getElementById('themeToggleBtn');
+if (localStorage.getItem('theme') === 'light') {
+    document.body.classList.add('light-mode');
+    themeBtn.innerText = "Dark Mode";
+}
+
+themeBtn.addEventListener('click', () => {
+    document.body.classList.toggle('light-mode');
+    if (document.body.classList.contains('light-mode')) {
+        localStorage.setItem('theme', 'light');
+        themeBtn.innerText = "Dark Mode";
+    } else {
+        localStorage.setItem('theme', 'dark');
+        themeBtn.innerText = "Light Mode";
+    }
+});
+
 // Check Server Status
 async function checkStatus() {
     try {
-        const res = await fetch('/api/status');
-        const data = await res.json();
-        const statEl = document.getElementById('dbSearchStatus');
-        if (data.loaded) {
-            statEl.textContent = `Online (${data.profile_count} profiles active)`;
-            statEl.style.color = '#7ee787';
+        let res = await fetch('/api/status');
+        let data = await res.json();
+        let s = document.getElementById('dbSearchStatus');
+        if (data.db_status === "Ready") {
+            s.innerHTML = `<span style="color:#7ee787;">Ready - ${data.profile_count} Profiles Indexed</span>`;
             if (data.feature_types) {
                 const fSet = new Set(Object.values(data.feature_types));
                 availableFeatureTypes = Array.from(fSet).sort();
             }
         } else {
-            statEl.textContent = 'Awaiting XML Load';
-            statEl.style.color = '#f85149';
+            s.innerHTML = `<span style="color:#f2cc60;">Reloading...</span>`;
+            setTimeout(checkStatus, 3000);
         }
-    } catch (err) {
-        document.getElementById('dbSearchStatus').textContent = 'Offline (Server down)';
-        document.getElementById('dbSearchStatus').style.color = '#f85149';
+    } catch(e) {
+        document.getElementById('dbSearchStatus').innerHTML = `<span style="color:#ff7b72;">Disconnected</span>`;
     }
 }
 checkStatus();
@@ -111,6 +127,10 @@ document.getElementById('uploadXmlBtn').addEventListener('click', async () => {
 });
 
 // Unique Search
+
+document.getElementById('searchInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') document.getElementById('searchBtn').click();
+});
 
 document.getElementById('searchBtn').addEventListener('click', async () => {
     const q = document.getElementById('searchInput').value.trim();
@@ -407,6 +427,10 @@ document.querySelectorAll('.d-tab-btn').forEach(btn => {
 
 document.getElementById('d-export-btn').addEventListener('click', () => {
     window.location.href = `/api/export/${currentDatasetTab}`;
+});
+
+document.getElementById('d-search').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') document.getElementById('d-search-btn').click();
 });
 
 document.getElementById('d-search-btn').addEventListener('click', async () => {
