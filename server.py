@@ -308,7 +308,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.send_header('Content-type', 'application/json')
             self.end_headers()
             self.wfile.write(json.dumps({
-                "loaded": len(db.profiles) > 0,
+                "db_status": "Ready" if len(db.profiles) > 0 else "Reloading...",
                 "profile_count": len(db.profiles),
                 "feature_types": db.references.get('FeatureType', {})
             }).encode('utf-8'))
@@ -357,17 +357,6 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
             self.wfile.write(json.dumps(results).encode('utf-8'))
-            
-        elif path == "/api/status":
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json')
-            self.end_headers()
-            status = {
-                "profile_count": len(db.profiles),
-                "features_indexed": len(db.feature_index),
-                "db_status": "Ready" if len(db.profiles) > 0 else "Reloading..."
-            }
-            self.wfile.write(json.dumps(status).encode('utf-8'))
             
         elif path == "/":
             self._serve_file("index.html", "text/html")

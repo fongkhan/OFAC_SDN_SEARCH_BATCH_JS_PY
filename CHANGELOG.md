@@ -27,3 +27,7 @@ All notable changes to the **OFAC SDN Advanced Search API** project will be docu
 ## [1.4.1] - UX Quality of Life Adjustments
 - **Added Native Theme Toggling**: Integrated a real-time DOM structural CSS override button allowing users to shift the application from its standard dark-mode glassmorphic default into a complete Light-Mode matrix. Securely binds settings into browser `localStorage` to preserve interface configurations permanently across reloads entirely natively.
 - **Enabled 'Enter' Key Subscriptions**: Integrated `keypress` event listeners tracking specifically for `Enter` commands binding execution flows seamlessly over the Unique query input loops and Dataset structural viewers without requiring rigid localized mouse actions manually.
+
+## [1.4.2] - Bug Fixes & API Consolidation
+- **Fixed Persistent Status Bug**: Resolved an issue where the frontend was stuck in the "Reloading..." state due to duplicate `/api/status` endpoint definitions in the backend. Consolidated redundant routes into a single, comprehensive status provider that correctly supplies the `db_status`, `profile_count`, and `feature_types` required for UI synchronization.
+- **Server Runtime Optimization**: Restarted background processing to ensure all structural changes to the search index and reference maps are correctly reflected in the live search environment.
