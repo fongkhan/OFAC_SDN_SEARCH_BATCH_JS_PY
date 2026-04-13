@@ -116,6 +116,72 @@ class OFACDatabase:
                     print(f"Loaded {count} profiles...")
                     
         print(f"Loaded total {count} profiles into memory.")
+        
+        # Second pass: parse SanctionsEntries and attach to profiles
+        print("Loading SanctionsEntries...")
+        try:
+            context2 = ET.iterparse(file_path, events=('start', 'end'))
+            in_sanctions = False
+            se_count = 0
+            for event, elem in context2:
+                tag = elem.tag.split('}')[-1]
+                if event == 'start' and tag == 'SanctionsEntries':
+                    in_sanctions = True
+                if event == 'end' and in_sanctions and tag == 'SanctionsEntry':
+                    profile_id = elem.attrib.get('ProfileID', '')
+                    if profile_id and profile_id in self.profiles:
+                        ns = elem.tag.split('}')[0] + '}'
+                        se_data = {}
+                        se_data['ListID'] = elem.attrib.get('ListID', '')
+                        
+                        # Resolve ListID
+                        list_ref = self.references.get('List', {})
+                        if se_data['ListID'] in list_ref:
+                            se_data['ListName'] = list_ref[se_data['ListID']]
+                        
+                        # EntryEvent
+                        for ee in elem.iter(f'{ns}EntryEvent'):
+                            ee_type_id = ee.attrib.get('EntryEventTypeID', '')
+                            legal_id = ee.attrib.get('LegalBasisID', '')
+                            ee_type_ref = self.references.get('EntryEventType', {})
+                            legal_ref = self.references.get('LegalBasis', {})
+                            se_data['EntryEventType'] = ee_type_ref.get(ee_type_id, ee_type_id)
+                            se_data['LegalBasis'] = legal_ref.get(legal_id, legal_id)
+                            
+                            # Entry date
+                            date_parts = []
+                            for y in ee.iter(f'{ns}Year'):
+                                if y.text: date_parts.append(y.text.strip())
+                            for m in ee.iter(f'{ns}Month'):
+                                if m.text: date_parts.insert(1, m.text.strip())
+                            for d in ee.iter(f'{ns}Day'):
+                                if d.text: date_parts.append(d.text.strip())
+                            if date_parts:
+                                se_data['EntryDate'] = "-".join(date_parts)
+                            break  # take first EntryEvent
+                        
+                        # SanctionsMeasures
+                        measures = []
+                        sanctions_type_ref = self.references.get('SanctionsType', {})
+                        for sm in elem.iter(f'{ns}SanctionsMeasure'):
+                            st_id = sm.attrib.get('SanctionsTypeID', '')
+                            st_name = sanctions_type_ref.get(st_id, st_id)
+                            comment_el = sm.find(f'{ns}Comment')
+                            comment_txt = comment_el.text.strip() if comment_el is not None and comment_el.text else ''
+                            measures.append({'SanctionsType': st_name, 'Comment': comment_txt})
+                        se_data['SanctionsMeasures'] = measures
+                        
+                        # Attach to profile
+                        if 'SanctionsEntries' not in self.profiles[profile_id]:
+                            self.profiles[profile_id]['SanctionsEntries'] = []
+                        self.profiles[profile_id]['SanctionsEntries'].append(se_data)
+                        se_count += 1
+                    elem.clear()
+                if event == 'end' and tag == 'SanctionsEntries':
+                    break
+            print(f"Linked {se_count} sanctions entries to profiles.")
+        except Exception as e:
+            print(f"Warning: Could not parse SanctionsEntries: {e}")
 
     def _elem_to_dict(self, elem):
         d = {}
@@ -435,7 +501,8 @@ class RequestHandler(BaseHTTPRequestHandler):
             feature_schema = db.references.get('FeatureType', {})
             f_names = sorted(list(set(feature_schema.values())))
             
-            headers = ["SearchTerm", "Matched", "OFAC_ID", "PrimaryName", "Type", "PartyComment", "Aliases"] + f_names
+            sanctions_cols = ["SanctionsList", "EntryDate", "LegalBasis", "SanctionsPrograms"]
+            headers = ["SearchTerm", "Matched", "OFAC_ID", "PrimaryName", "Type", "PartyComment", "Aliases"] + sanctions_cols + f_names
             writer.writerow(headers)
             
             for row in reader:
@@ -492,16 +559,30 @@ class RequestHandler(BaseHTTPRequestHandler):
                                 if detail.strip() and ftype in feature_map:
                                     feature_map[ftype].append(detail.strip())
 
+                        # Extract sanctions data
+                        se_lists = []
+                        se_dates = []
+                        se_legal = []
+                        se_programs = []
+                        for se in p.get('SanctionsEntries', []):
+                            if se.get('ListName'): se_lists.append(se['ListName'])
+                            if se.get('EntryDate'): se_dates.append(se['EntryDate'])
+                            if se.get('LegalBasis'): se_legal.append(se['LegalBasis'])
+                            for sm in se.get('SanctionsMeasures', []):
+                                prog = sm.get('Comment', '')
+                                if prog: se_programs.append(prog)
+
                         pComment = p.get('DistinctPartyComment', '')
                         row_data = [
-                            term, "Yes", p.get("ID", ""), primary_name, pType, pComment, "; ".join(aliases)
+                            term, "Yes", p.get("ID", ""), primary_name, pType, pComment, "; ".join(aliases),
+                            "; ".join(se_lists), "; ".join(se_dates), "; ".join(se_legal), "; ".join(se_programs)
                         ]
                         for fn in f_names:
                             row_data.append("; ".join(feature_map[fn]))
 
                         writer.writerow(row_data)
                 else:
-                    null_row = [term, "No", "", "", "", "", ""] + [""] * len(f_names)
+                    null_row = [term, "No", "", "", "", "", ""] + [""] * len(sanctions_cols) + [""] * len(f_names)
                     writer.writerow(null_row)
                     
             self.send_response(200)

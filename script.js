@@ -3,7 +3,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
-        
+
         btn.classList.add('active');
         document.getElementById(btn.dataset.target).classList.remove('hidden');
     });
@@ -28,7 +28,7 @@ function formatAliasName(aliasNode, identNode) {
     let groupMap = {};
     if (identNode && identNode.NamePartGroups && identNode.NamePartGroups[0].MasterNamePartGroup) {
         identNode.NamePartGroups[0].MasterNamePartGroup.forEach(mg => {
-            if(mg.NamePartGroup && mg.NamePartGroup[0]) {
+            if (mg.NamePartGroup && mg.NamePartGroup[0]) {
                 let npg = mg.NamePartGroup[0];
                 let ty = npg.NamePartTypeID ? (typeof npg.NamePartTypeID === 'object' ? npg.NamePartTypeID.value : npg.NamePartTypeID) : "Unknown";
                 groupMap[npg.ID] = ty;
@@ -45,13 +45,13 @@ function formatAliasName(aliasNode, identNode) {
                     let gid = v.NamePartGroupID;
                     let typeName = groupMap[gid] || "Unknown";
                     let order = namePartOrder[typeName] || 99;
-                    if(text) partsList.push({text: text, order: order});
+                    if (text) partsList.push({ text: text, order: order });
                 });
             }
         });
     }
-    partsList.sort((a,b) => a.order - b.order);
-    return partsList.map(x=>x.text).join(' ');
+    partsList.sort((a, b) => a.order - b.order);
+    return partsList.map(x => x.text).join(' ');
 }
 
 // Theme Integration Setup
@@ -88,7 +88,7 @@ async function checkStatus() {
             s.innerHTML = `<span style="color:#f2cc60;">Reloading...</span>`;
             setTimeout(checkStatus, 3000);
         }
-    } catch(e) {
+    } catch (e) {
         document.getElementById('dbSearchStatus').innerHTML = `<span style="color:#ff7b72;">Disconnected</span>`;
     }
 }
@@ -101,10 +101,10 @@ document.getElementById('uploadXmlBtn').addEventListener('click', async () => {
         alert("Please select an XML file to upload.");
         return;
     }
-    
+
     const statusTxt = document.getElementById('xml-status');
     statusTxt.textContent = "Uploading and parsing... this may take 10-30 seconds.";
-    
+
     try {
         const payload = await fileInst.arrayBuffer();
         const res = await fetch('/api/upload', {
@@ -121,48 +121,48 @@ document.getElementById('uploadXmlBtn').addEventListener('click', async () => {
         } else {
             statusTxt.textContent = "Failed to upload.";
         }
-    } catch(err) {
+    } catch (err) {
         statusTxt.textContent = "Upload error: " + err;
     }
 });
 
 // Unique Search
 
-document.getElementById('searchInput').addEventListener('keypress', function(e) {
+document.getElementById('searchInput').addEventListener('keypress', function (e) {
     if (e.key === 'Enter') document.getElementById('searchBtn').click();
 });
 
 document.getElementById('searchBtn').addEventListener('click', async () => {
     const q = document.getElementById('searchInput').value.trim();
     if (!q) return;
-    
+
     const resEl = document.getElementById('u-results');
     const metaEl = document.getElementById('u-meta');
     const expBtn = document.getElementById('exportCsvBtn');
-    
+
     resEl.innerHTML = "Searching...";
     metaEl.innerHTML = "";
     expBtn.classList.add('hidden');
-    
+
     try {
         const res = await fetch('/api/search/unique?q=' + encodeURIComponent(q));
         const data = await res.json();
         currentUniqueRawData = data;
-        
+
         metaEl.textContent = `Found ${data.length} profiles matching query.`;
         if (data.length > 0) {
             expBtn.classList.remove('hidden');
         }
-        
+
         resEl.innerHTML = "";
         data.forEach(p => {
             const card = document.createElement('div');
             card.className = 'profile-card';
-            
+
             // Try extract prime names
             let primaryNameStrs = [];
             const aliases = [];
-            
+
             if (p.Identity) {
                 p.Identity.forEach(ident => {
                     if (ident.Alias) {
@@ -171,17 +171,17 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
                             if (al.Primary === "true") {
                                 if (nameText) primaryNameStrs.push(nameText);
                             } else {
-                                if(nameText) aliases.push(nameText);
+                                if (nameText) aliases.push(nameText);
                             }
                         });
                     }
                 });
             }
             let primaryName = primaryNameStrs.length > 0 ? primaryNameStrs.join('; ') : "Unknown Entity";
-            
+
             // Extract partyType
             let pType = p.PartySubTypeID ? (p.PartySubTypeID.value || p.PartySubTypeID) : "Unknown";
-            
+
             let html = `
                 <div class="profile-header">
                     <span class="profile-title">${primaryName} <small style="color:var(--text-muted)">(${pType})</small></span>
@@ -197,7 +197,7 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
                     <div class="data-section">
                         <h3>Features (Linked Attributes)</h3>
                         <ul class="data-list">`;
-            
+
             if (p.Feature) {
                 p.Feature.forEach(f => {
                     const fType = f.FeatureTypeID ? (f.FeatureTypeID.value || f.FeatureTypeID) : "Unknown";
@@ -231,7 +231,7 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
                                         let y = from.Year && from.Year[0].text ? from.Year[0].text : '';
                                         let m = from.Month && from.Month[0].text ? from.Month[0].text : '';
                                         let d = from.Day && from.Day[0].text ? from.Day[0].text : '';
-                                        let dateStr = [y, m, d].filter(x=>x).join('-');
+                                        let dateStr = [y, m, d].filter(x => x).join('-');
                                         if (dateStr) details += `[${dateStr}] `;
                                     }
                                 });
@@ -243,33 +243,60 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
             } else {
                 html += `<li class="data-item">No features</li>`;
             }
-            
-            html += `</ul></div></div>
+
+            html += `</ul></div></div>`;
+
+            // Sanctions Information Section
+            if (p.SanctionsEntries && p.SanctionsEntries.length > 0) {
+                html += `<div style="margin-top:15px;">
+                    <h3 style="font-size:0.9em; text-transform:uppercase; color:var(--text-muted); margin-bottom:10px;">Sanctions Information</h3>
+                    <ul class="data-list">`;
+                p.SanctionsEntries.forEach(se => {
+                    let entryLine = '';
+                    if (se.ListName) entryLine += `<strong>List:</strong> ${se.ListName} `;
+                    if (se.EntryDate) entryLine += `| <strong>Entry Date:</strong> ${se.EntryDate} `;
+                    if (se.EntryEventType) entryLine += `| <strong>Event:</strong> ${se.EntryEventType} `;
+                    if (se.LegalBasis) entryLine += `| <strong>Legal Basis:</strong> ${se.LegalBasis} `;
+                    html += `<li class="data-item">${entryLine.trim()}</li>`;
+
+                    if (se.SanctionsMeasures && se.SanctionsMeasures.length > 0) {
+                        se.SanctionsMeasures.forEach(sm => {
+                            let mLine = `<span style="margin-left:12px;">↳ <strong>${sm.SanctionsType}</strong>`;
+                            if (sm.Comment) mLine += `: <span class="ref">${sm.Comment}</span>`;
+                            mLine += `</span>`;
+                            html += `<li class="data-item">${mLine}</li>`;
+                        });
+                    }
+                });
+                html += `</ul></div>`;
+            }
+
+            html += `
             <details style="margin-top:15px; cursor:pointer;" class="btn secondary">
                 <summary>View Complete JSON</summary>
                 <pre>${JSON.stringify(p, null, 2)}</pre>
             </details>
             `;
-            
+
             card.innerHTML = html;
             resEl.appendChild(card);
         });
-        
-    } catch(err) {
+
+    } catch (err) {
         resEl.innerHTML = `<span style="color:red">Error: ${err}</span>`;
     }
 });
 
 // Download Unique Search CSV
 document.getElementById('exportCsvBtn').addEventListener('click', () => {
-    if(!currentUniqueRawData.length) return;
-    
+    if (!currentUniqueRawData.length) return;
+
     let fNames = availableFeatureTypes;
-    
+
     const rows = [
-        ["ID", "Primary_Name", "Type", "PartyComment", "Aliases", ...fNames]
+        ["ID", "Primary_Name", "Type", "PartyComment", "Aliases", "SanctionsList", "EntryDate", "LegalBasis", "SanctionsPrograms", ...fNames]
     ];
-    
+
     currentUniqueRawData.forEach(p => {
         let primaryNameStrs = [];
         let aliases = [];
@@ -281,7 +308,7 @@ document.getElementById('exportCsvBtn').addEventListener('click', () => {
                         if (al.Primary === "true") {
                             if (nameText) primaryNameStrs.push(nameText);
                         } else {
-                            if(nameText) aliases.push(nameText);
+                            if (nameText) aliases.push(nameText);
                         }
                     });
                 }
@@ -289,10 +316,10 @@ document.getElementById('exportCsvBtn').addEventListener('click', () => {
         }
         let primaryName = primaryNameStrs.length > 0 ? primaryNameStrs.join('; ') : "Unknown";
         let pType = p.PartySubTypeID ? (p.PartySubTypeID.value || p.PartySubTypeID) : "Unknown";
-        
+
         let featureMap = {};
         fNames.forEach(fn => featureMap[fn] = []);
-        
+
         if (p.Feature) {
             p.Feature.forEach(f => {
                 const fType = f.FeatureTypeID ? (f.FeatureTypeID.value || f.FeatureTypeID) : "Unknown";
@@ -326,7 +353,7 @@ document.getElementById('exportCsvBtn').addEventListener('click', () => {
                                     let y = from.Year && from.Year[0].text ? from.Year[0].text : '';
                                     let m = from.Month && from.Month[0].text ? from.Month[0].text : '';
                                     let d = from.Day && from.Day[0].text ? from.Day[0].text : '';
-                                    let dateStr = [y, m, d].filter(x=>x).join('-');
+                                    let dateStr = [y, m, d].filter(x => x).join('-');
                                     detail += dateStr + " ";
                                 }
                             });
@@ -338,26 +365,45 @@ document.getElementById('exportCsvBtn').addEventListener('click', () => {
                 }
             });
         }
-        
+
+        // Extract sanctions data
+        let seLists = [], seDates = [], seLegal = [], sePrograms = [];
+        if (p.SanctionsEntries) {
+            p.SanctionsEntries.forEach(se => {
+                if (se.ListName) seLists.push(se.ListName);
+                if (se.EntryDate) seDates.push(se.EntryDate);
+                if (se.LegalBasis) seLegal.push(se.LegalBasis);
+                if (se.SanctionsMeasures) {
+                    se.SanctionsMeasures.forEach(sm => {
+                        if (sm.Comment) sePrograms.push(sm.Comment);
+                    });
+                }
+            });
+        }
+
         const clean = (str) => typeof str === 'string' ? `"${str.replace(/"/g, '""')}"` : '""';
-        
+
         let pComment = p.DistinctPartyComment || "";
-        
+
         let rowData = [
             clean(p.ID),
             clean(primaryName),
             clean(pType),
             clean(pComment),
-            clean(aliases.join("; "))
+            clean(aliases.join("; ")),
+            clean(seLists.join("; ")),
+            clean(seDates.join("; ")),
+            clean(seLegal.join("; ")),
+            clean(sePrograms.join("; "))
         ];
-        
+
         fNames.forEach(fn => {
             rowData.push(clean(featureMap[fn].join("; ")));
         });
-        
+
         rows.push(rowData);
     });
-    
+
     const csvContent = rows.map(r => r.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -376,10 +422,10 @@ document.getElementById('uploadBatchBtn').addEventListener('click', async () => 
         alert("Please select a completed CSV template to upload.");
         return;
     }
-    
+
     const statusTxt = document.getElementById('batch-status');
     statusTxt.textContent = "Processing batch... this will download automatically when done.";
-    
+
     try {
         const payload = await fileInst.arrayBuffer();
         const res = await fetch('/api/search/batch', {
@@ -389,7 +435,7 @@ document.getElementById('uploadBatchBtn').addEventListener('click', async () => 
                 'Content-Type': 'text/csv'
             }
         });
-        
+
         if (res.ok) {
             const blob = await res.blob();
             const url = URL.createObjectURL(blob);
@@ -403,7 +449,7 @@ document.getElementById('uploadBatchBtn').addEventListener('click', async () => 
         } else {
             statusTxt.textContent = "Failed to process batch query.";
         }
-    } catch(err) {
+    } catch (err) {
         statusTxt.textContent = "Batch error: " + err;
     }
 });
@@ -416,7 +462,7 @@ document.querySelectorAll('.d-tab-btn').forEach(btn => {
         document.querySelectorAll('.d-tab-btn').forEach(b => b.classList.remove('active'));
         e.target.classList.add('active');
         currentDatasetTab = e.target.getAttribute('data-dataset');
-        
+
         document.getElementById('d-title').innerText = currentDatasetTab + " Viewer";
         document.getElementById('d-thead').innerHTML = '';
         document.getElementById('d-tbody').innerHTML = '';
@@ -429,7 +475,7 @@ document.getElementById('d-export-btn').addEventListener('click', () => {
     window.location.href = `/api/export/${currentDatasetTab}`;
 });
 
-document.getElementById('d-search').addEventListener('keypress', function(e) {
+document.getElementById('d-search').addEventListener('keypress', function (e) {
     if (e.key === 'Enter') document.getElementById('d-search-btn').click();
 });
 
@@ -438,23 +484,23 @@ document.getElementById('d-search-btn').addEventListener('click', async () => {
     const tbody = document.getElementById('d-tbody');
     const thead = document.getElementById('d-thead');
     const status = document.getElementById('d-status');
-    
+
     tbody.innerHTML = '';
     thead.innerHTML = '';
     status.innerText = 'Searching stream...';
-    
+
     try {
         let res = await fetch(`/api/search/dataset?type=${currentDatasetTab}&q=${encodeURIComponent(q)}`);
         if (!res.ok) throw new Error('Query error');
         let data = await res.json();
-        
+
         if (!data.columns || data.columns.length === 0) {
             status.innerText = "No data mapping found. Dataset might not exist.";
             return;
         }
-        
+
         status.innerText = `Showing ${data.rows.length} matches (Max 100 limit enforced)`;
-        
+
         // Build Headers
         let headerRow = '<tr>';
         data.columns.forEach(col => {
@@ -462,7 +508,7 @@ document.getElementById('d-search-btn').addEventListener('click', async () => {
         });
         headerRow += '</tr>';
         thead.innerHTML = headerRow;
-        
+
         // Build Rows
         let bodyHtml = '';
         data.rows.forEach(row => {
@@ -474,8 +520,8 @@ document.getElementById('d-search-btn').addEventListener('click', async () => {
             bodyHtml += '</tr>';
         });
         tbody.innerHTML = bodyHtml;
-        
-    } catch(err) {
+
+    } catch (err) {
         status.innerText = "Error executing query constraint block.";
         console.error(err);
     }

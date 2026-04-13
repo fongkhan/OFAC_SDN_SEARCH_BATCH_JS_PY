@@ -37,3 +37,9 @@ All notable changes to the **OFAC SDN Advanced Search API** project will be docu
 - **Revised Aesthetic Tokens**: Introduced more subtle active states for tabs and sidebars, replacing high-saturation blue blocks with refined, low-opacity highlights for a more premium enterprise feel.
 - **Status Indicator Visibility**: Implemented a dual-state green status indicator that automatically adjusts its hue and saturation to maintain optimal legibility against both dark and light backgrounds.
 - **Fixed Profile Card Layout**: Resolved a CSS bug where search result containers became invisible in light mode, reinstating borders and themed background planes for clearly defined entity data visualization.
+
+## [1.5.0] - SanctionsEntries Integration
+- **Linked SanctionsEntries to Profiles**: Implemented a second XML parsing pass over the `<SanctionsEntries>` section, matching each `SanctionsEntry.ProfileID` to its corresponding `DistinctParty.FixedRef` / `Profile.ID`. All 18,874 sanctions entries are now attached directly to their profile records at load time.
+- **Resolved Reference Values**: `ListID`, `EntryEventTypeID`, `LegalBasisID`, and `SanctionsTypeID` attributes are automatically mapped to human-readable values (e.g., "SDN List", "Executive Order 13224 (Terrorism)") via the pre-loaded `ReferenceValueSets`.
+- **Frontend Sanctions Panel**: Added a dedicated "Sanctions Information" section to each profile card in the UI, displaying list name, entry date, event type, legal basis, and individual sanctions measures with program comments.
+- **CSV Export Enrichment**: Added 4 new columns (`SanctionsList`, `EntryDate`, `LegalBasis`, `SanctionsPrograms`) to both the unique search and batch search CSV exports.
