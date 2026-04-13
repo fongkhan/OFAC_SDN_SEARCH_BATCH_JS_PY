@@ -84,6 +84,10 @@ async function checkStatus() {
                 const fSet = new Set(Object.values(data.feature_types));
                 availableFeatureTypes = Array.from(fSet).sort();
             }
+            if (data.sanctions_programs) {
+                populateProgramFilter('programFilterDropdown', data.sanctions_programs);
+                populateProgramFilter('batchProgramFilterDropdown', data.sanctions_programs);
+            }
         } else {
             s.innerHTML = `<span style="color:#f2cc60;">Reloading...</span>`;
             setTimeout(checkStatus, 3000);
@@ -92,6 +96,49 @@ async function checkStatus() {
         document.getElementById('dbSearchStatus').innerHTML = `<span style="color:#ff7b72;">Disconnected</span>`;
     }
 }
+
+function populateProgramFilter(containerId, programs) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = '';
+    programs.forEach(prog => {
+        const label = document.createElement('label');
+        label.style.cssText = 'display:flex; align-items:center; gap:4px; font-size:0.85em; cursor:pointer; padding:2px 4px; border-radius:4px;';
+        label.innerHTML = `<input type="checkbox" value="${prog}" class="program-cb" style="cursor:pointer;"> ${prog}`;
+        container.appendChild(label);
+    });
+}
+
+function getSelectedPrograms(containerId) {
+    const checkboxes = document.querySelectorAll('#' + containerId + ' .program-cb:checked');
+    return Array.from(checkboxes).map(cb => cb.value);
+}
+
+function updateProgramSummary(containerId, summaryId) {
+    const selected = getSelectedPrograms(containerId);
+    const el = document.getElementById(summaryId);
+    if (selected.length === 0) {
+        el.textContent = 'No filter (all programs)';
+    } else {
+        el.textContent = selected.join(', ');
+    }
+}
+
+// Toggle dropdowns
+document.getElementById('toggleProgramFilter').addEventListener('click', () => {
+    document.getElementById('programFilterDropdown').classList.toggle('hidden');
+});
+document.getElementById('toggleBatchProgramFilter').addEventListener('click', () => {
+    document.getElementById('batchProgramFilterDropdown').classList.toggle('hidden');
+});
+
+// Update summaries on checkbox change
+document.getElementById('programFilterDropdown').addEventListener('change', () => {
+    updateProgramSummary('programFilterDropdown', 'programFilterSummary');
+});
+document.getElementById('batchProgramFilterDropdown').addEventListener('change', () => {
+    updateProgramSummary('batchProgramFilterDropdown', 'batchProgramFilterSummary');
+});
+
 checkStatus();
 
 // XML Upload
@@ -145,7 +192,12 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
     expBtn.classList.add('hidden');
 
     try {
-        const res = await fetch('/api/search/unique?q=' + encodeURIComponent(q));
+        let searchUrl = '/api/search/unique?q=' + encodeURIComponent(q);
+        const selectedPrograms = getSelectedPrograms('programFilterDropdown');
+        if (selectedPrograms.length > 0) {
+            searchUrl += '&programs=' + encodeURIComponent(selectedPrograms.join(','));
+        }
+        const res = await fetch(searchUrl);
         const data = await res.json();
         currentUniqueRawData = data;
 
@@ -425,12 +477,15 @@ document.getElementById('uploadBatchBtn').addEventListener('click', async () => 
 
     try {
         const payload = await fileInst.arrayBuffer();
+        const batchPrograms = getSelectedPrograms('batchProgramFilterDropdown');
+        const fetchHeaders = { 'Content-Type': 'text/csv' };
+        if (batchPrograms.length > 0) {
+            fetchHeaders['X-Programs'] = batchPrograms.join(',');
+        }
         const res = await fetch('/api/search/batch', {
             method: 'POST',
             body: payload,
-            headers: {
-                'Content-Type': 'text/csv'
-            }
+            headers: fetchHeaders
         });
 
         if (res.ok) {

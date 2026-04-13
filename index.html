@@ -31,6 +31,12 @@
                     <input type="text" id="searchInput" placeholder="Enter Name or ID..." />
                     <button id="searchBtn" class="btn primary">Search</button>
                 </div>
+                <div id="programFilterContainer" style="margin-top:12px;">
+                    <label style="font-size:0.9em; color:var(--text-muted); margin-right:8px;"><strong>Filter by Programs:</strong></label>
+                    <button id="toggleProgramFilter" class="btn secondary" style="padding:6px 12px; font-size:0.85em;">Select Programs &#9662;</button>
+                    <span id="programFilterSummary" style="margin-left:10px; font-size:0.85em; color:var(--text-muted);">No filter (all programs)</span>
+                    <div id="programFilterDropdown" class="hidden" style="margin-top:8px; max-height:200px; overflow-y:auto; background:var(--input-bg); border:1px solid var(--glass-border); border-radius:8px; padding:10px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:4px;"></div>
+                </div>
                 
                 <div class="results-meta" id="u-meta"></div>
                 <div id="u-results" class="results-container"></div>
@@ -48,7 +54,13 @@
                 <div class="action-box">
                     <p>2. Upload your completed CSV batch mapping to process matches against our registry.</p>
                     <input type="file" id="batchFileInput" accept=".csv" />
-                    <button id="uploadBatchBtn" class="btn primary">Process Batch Query</button>
+                    <div id="batchProgramFilterContainer" style="margin-top:12px;">
+                        <label style="font-size:0.9em; color:var(--text-muted); margin-right:8px;"><strong>Filter by Programs:</strong></label>
+                        <button id="toggleBatchProgramFilter" class="btn secondary" style="padding:6px 12px; font-size:0.85em;">Select Programs &#9662;</button>
+                        <span id="batchProgramFilterSummary" style="margin-left:10px; font-size:0.85em; color:var(--text-muted);">No filter (all programs)</span>
+                        <div id="batchProgramFilterDropdown" class="hidden" style="margin-top:8px; max-height:200px; overflow-y:auto; background:var(--input-bg); border:1px solid var(--glass-border); border-radius:8px; padding:10px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:4px;"></div>
+                    </div>
+                    <button id="uploadBatchBtn" class="btn primary" style="margin-top:12px;">Process Batch Query</button>
                 </div>
                 <div id="batch-status"></div>
             </section>

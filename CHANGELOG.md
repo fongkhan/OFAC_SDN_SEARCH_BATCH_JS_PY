@@ -43,3 +43,12 @@ All notable changes to the **OFAC SDN Advanced Search API** project will be docu
 - **Resolved Reference Values**: `ListID`, `EntryEventTypeID`, `LegalBasisID`, and `SanctionsTypeID` attributes are automatically mapped to human-readable values (e.g., "SDN List", "Executive Order 13224 (Terrorism)") via the pre-loaded `ReferenceValueSets`.
 - **Frontend Sanctions Panel**: Added a dedicated "Sanctions Information" section to each profile card in the UI, displaying list name, entry date, event type, legal basis, and individual sanctions measures with program comments.
 - **CSV Export Enrichment**: Added 4 new columns (`SanctionsList`, `EntryDate`, `LegalBasis`, `SanctionsPrograms`) to both the unique search and batch search CSV exports.
+
+## [1.5.1] - Sanctions Display & Searchable Programs
+- **Individual Sanctions Blocks**: Redesigned the Sanctions Information panel so each field (List, Entry Date, Event, Legal Basis, each Measure) renders as its own independent block, matching the alias display style for better readability.
+- **Program-Indexed Search**: Rebuilt the search index after loading SanctionsEntries to include sanctions program codes (SDGT, TCO, CUBA, etc.) in the searchable text. Users can now search directly by program code in both unique and batch searches.
+
+## [1.6.0] - Sanctions Program Filter
+- **Multi-Select Program Filter**: Added an interactive filter dropdown to both the Unique Search and Batch Search tabs. Users can select one or more sanctions programs (73 available) to narrow search results to only profiles tagged with those programs.
+- **Server-Side Filtering**: Search results are filtered server-side via query parameters (unique search) or HTTP headers (batch search), ensuring only matching profiles are returned.
+- **Dynamic Program Discovery**: All unique program names are collected during database loading and exposed via the `/api/status` endpoint for automatic UI population.

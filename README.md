@@ -10,6 +10,8 @@ A robust, fully standalone web application for indexing, querying, and exporting
 - **SanctionsEntries Linking**: Performs a second parsing pass to match `SanctionsEntry.ProfileID` to `DistinctParty.FixedRef`, enriching each profile with listing dates, legal basis, sanctions programs, and measures.
 - **Intelligent Name Assembly**: Uses `NamePartGroups` and `NamePartTypeID` mappings to correctly order name components (First Name → Last Name) and concatenate primary aliases.
 - **Unique & Batch Search**: Query individual profiles or upload a CSV file to process thousands of checks, with comprehensive flattened CSV output.
+- **Sanctions Program Filter**: Multi-select dropdown in both search tabs lets you filter results by specific sanctions programs (73 available, e.g. SDGT, TCO, CUBA). Programs are discovered automatically from the data.
+- **Searchable by Program Code**: The search index includes sanctions program codes, so typing "SDGT" or "TCO" directly returns matching profiles.
 - **Interactive Dataset Explorer**: Browse and search raw XML datasets (Locations, IDRegDocuments, ProfileRelationships, SanctionsEntries, ReferenceValueSets) directly in the browser with streaming query limits.
 - **Dark/Light Theme Toggle**: Full theme support with `localStorage` persistence across sessions.
 - **Hot-Swappable Datasets**: Upload new XML files via the UI to reload the database without restarting the server.
@@ -45,12 +47,12 @@ No installation required beyond a Python 3 runtime.
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `GET` | `/api/status` | Database status, profile count, feature types |
-| `GET` | `/api/search/unique?q=<query>` | Search profiles by name or ID (max 50 results) |
+| `GET` | `/api/status` | Database status, profile count, feature types, sanctions programs list |
+| `GET` | `/api/search/unique?q=<query>&programs=<P1,P2>` | Search profiles by name/ID, optionally filtered by programs |
 | `GET` | `/api/search/dataset?type=<name>&q=<query>` | Search raw datasets (max 100 results) |
 | `GET` | `/api/export/<dataset>` | Download full dataset as CSV or ZIP |
 | `GET` | `/api/template` | Download batch search CSV template |
-| `POST` | `/api/search/batch` | Upload CSV for batch matching, returns flattened CSV |
+| `POST` | `/api/search/batch` | Upload CSV for batch matching (header `X-Programs` for filtering) |
 | `POST` | `/api/upload` | Upload new `sdn_advanced.xml` to reload database |
 
 ---
@@ -71,8 +73,9 @@ Both unique and batch search exports include:
 
 ## 🧪 Testing & Validation
 
-- **Boot Performance**: 18,698 profiles + 18,874 sanctions entries indexed in ~5 seconds.
-- **Search Accuracy**: Partial text and ID queries return correct profile matches with full alias resolution.
+- **Boot Performance**: 18,698 profiles + 18,874 sanctions entries indexed in ~5 seconds. 73 unique sanctions programs discovered.
+- **Search Accuracy**: Partial text, ID, and program code queries return correct profile matches with full alias resolution.
+- **Program Filtering**: Selecting SDGT for "abbas" narrows results from 44 to 18 profiles; selecting TCO narrows to 1.
 - **Reference Integrity**: All `DetailReferenceID`, `LocationID`, `SanctionsTypeID`, and `LegalBasisID` values resolve to readable strings.
 - **Export Completeness**: CSV exports contain all linked data: features, locations, sanctions programs, legal bases, and entry dates.
 - **Theme Robustness**: All UI elements maintain proper contrast and visibility in both dark and light modes.

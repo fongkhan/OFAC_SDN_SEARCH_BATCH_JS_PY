@@ -19,6 +19,7 @@ class OFACDatabase:
         self.profiles = {}
         self.search_index = []
         self.locations = {}
+        self.sanctions_programs = set()
     
     def load(self, file_path):
         print(f"Loading data from {file_path}")
@@ -183,8 +184,9 @@ class OFACDatabase:
         except Exception as e:
             print(f"Warning: Could not parse SanctionsEntries: {e}")
         
-        # Rebuild search index to include sanctions programs
+        # Rebuild search index to include sanctions programs and collect unique program names
         print("Rebuilding search index with sanctions data...")
+        self.sanctions_programs = set()
         new_index = []
         for search_text, pid in self.search_index:
             profile = self.profiles.get(pid, {})
@@ -194,11 +196,12 @@ class OFACDatabase:
                     comment = sm.get('Comment', '')
                     if comment:
                         programs.append(comment)
+                        self.sanctions_programs.add(comment)
             if programs:
                 search_text = search_text + " " + " ".join(programs).lower()
             new_index.append((search_text, pid))
         self.search_index = new_index
-        print("Search index rebuilt.")
+        print(f"Search index rebuilt. Found {len(self.sanctions_programs)} unique sanctions programs.")
 
     def _elem_to_dict(self, elem):
         d = {}
@@ -222,13 +225,22 @@ class OFACDatabase:
             d[tag].append(child_dict)
         return d
 
-    def search_unique(self, query):
+    def search_unique(self, query, program_filter=None):
         q = query.lower()
         results = []
         for text, pid in self.search_index:
             if q in text:
-                results.append(self.profiles[pid])
-                if len(results) >= 50: # Limit results
+                profile = self.profiles[pid]
+                if program_filter:
+                    profile_programs = set()
+                    for se in profile.get('SanctionsEntries', []):
+                        for sm in se.get('SanctionsMeasures', []):
+                            if sm.get('Comment'):
+                                profile_programs.add(sm['Comment'])
+                    if not profile_programs.intersection(program_filter):
+                        continue
+                results.append(profile)
+                if len(results) >= 50:
                     break
         return results
 
@@ -393,7 +405,8 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps({
                 "db_status": "Ready" if len(db.profiles) > 0 else "Reloading...",
                 "profile_count": len(db.profiles),
-                "feature_types": db.references.get('FeatureType', {})
+                "feature_types": db.references.get('FeatureType', {}),
+                "sanctions_programs": sorted(list(db.sanctions_programs))
             }).encode('utf-8'))
             
         elif path == "/api/template":
@@ -414,9 +427,12 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self.end_headers()
             
         elif path == "/api/search/unique":
-            query = urllib.parse.parse_qs(parsed_path.query).get('q', [''])[0]
+            query_params = urllib.parse.parse_qs(parsed_path.query)
+            query = query_params.get('q', [''])[0]
+            programs_param = query_params.get('programs', [''])[0]
+            program_filter = set(programs_param.split(',')) if programs_param else None
             if query:
-                results = db.search_unique(query)
+                results = db.search_unique(query, program_filter=program_filter)
                 self.send_response(200)
                 self.send_header('Content-Type', 'application/json')
                 self.end_headers()
@@ -507,10 +523,14 @@ class RequestHandler(BaseHTTPRequestHandler):
         
         if path == "/api/search/batch":
             content_length = int(self.headers.get('Content-Length', 0))
-            post_data = self.rfile.read(content_length).decode('utf-8')
+            post_data = self.rfile.read(content_length)
+            
+            # Check for multipart or parse programs header
+            programs_header = self.headers.get('X-Programs', '')
+            program_filter = set(programs_header.split(',')) if programs_header else None
             
             # Read CSV
-            reader = csv.DictReader(io.StringIO(post_data))
+            reader = csv.DictReader(io.StringIO(post_data.decode('utf-8')))
             
             output = io.StringIO()
             writer = csv.writer(output)
@@ -526,7 +546,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 term = row.get("SearchTerm", "").strip()
                 if not term:
                     continue
-                results = db.search_unique(term)
+                results = db.search_unique(term, program_filter=program_filter)
                 if results:
                     for p in results:
                         primary_name = db.get_profile_primary_name(p)
