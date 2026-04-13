@@ -252,19 +252,16 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
                     <h3 style="font-size:0.9em; text-transform:uppercase; color:var(--text-muted); margin-bottom:10px;">Sanctions Information</h3>
                     <ul class="data-list">`;
                 p.SanctionsEntries.forEach(se => {
-                    let entryLine = '';
-                    if (se.ListName) entryLine += `<strong>List:</strong> ${se.ListName} `;
-                    if (se.EntryDate) entryLine += `| <strong>Entry Date:</strong> ${se.EntryDate} `;
-                    if (se.EntryEventType) entryLine += `| <strong>Event:</strong> ${se.EntryEventType} `;
-                    if (se.LegalBasis) entryLine += `| <strong>Legal Basis:</strong> ${se.LegalBasis} `;
-                    html += `<li class="data-item">${entryLine.trim()}</li>`;
+                    if (se.ListName) html += `<li class="data-item"><strong>List:</strong> ${se.ListName}</li>`;
+                    if (se.EntryDate) html += `<li class="data-item"><strong>Entry Date:</strong> ${se.EntryDate}</li>`;
+                    if (se.EntryEventType) html += `<li class="data-item"><strong>Event:</strong> ${se.EntryEventType}</li>`;
+                    if (se.LegalBasis) html += `<li class="data-item"><strong>Legal Basis:</strong> ${se.LegalBasis}</li>`;
 
                     if (se.SanctionsMeasures && se.SanctionsMeasures.length > 0) {
                         se.SanctionsMeasures.forEach(sm => {
-                            let mLine = `<span style="margin-left:12px;">↳ <strong>${sm.SanctionsType}</strong>`;
-                            if (sm.Comment) mLine += `: <span class="ref">${sm.Comment}</span>`;
-                            mLine += `</span>`;
-                            html += `<li class="data-item">${mLine}</li>`;
+                            let label = `<strong>${sm.SanctionsType}</strong>`;
+                            if (sm.Comment) label += `: <span class="ref">${sm.Comment}</span>`;
+                            html += `<li class="data-item">${label}</li>`;
                         });
                     }
                 });

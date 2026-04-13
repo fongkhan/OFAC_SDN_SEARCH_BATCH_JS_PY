@@ -182,6 +182,23 @@ class OFACDatabase:
             print(f"Linked {se_count} sanctions entries to profiles.")
         except Exception as e:
             print(f"Warning: Could not parse SanctionsEntries: {e}")
+        
+        # Rebuild search index to include sanctions programs
+        print("Rebuilding search index with sanctions data...")
+        new_index = []
+        for search_text, pid in self.search_index:
+            profile = self.profiles.get(pid, {})
+            programs = []
+            for se in profile.get('SanctionsEntries', []):
+                for sm in se.get('SanctionsMeasures', []):
+                    comment = sm.get('Comment', '')
+                    if comment:
+                        programs.append(comment)
+            if programs:
+                search_text = search_text + " " + " ".join(programs).lower()
+            new_index.append((search_text, pid))
+        self.search_index = new_index
+        print("Search index rebuilt.")
 
     def _elem_to_dict(self, elem):
         d = {}
