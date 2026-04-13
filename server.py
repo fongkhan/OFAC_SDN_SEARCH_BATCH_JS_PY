@@ -416,6 +416,77 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(b"SearchTerm\n")
             
+        elif path == "/api/export/all":
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/csv')
+            self.send_header('Content-Disposition', 'attachment; filename="ofac_full_database.csv"')
+            self.end_headers()
+            
+            feature_schema = db.references.get('FeatureType', {})
+            f_names = sorted(list(set(feature_schema.values())))
+            sanctions_cols = ["SanctionsList", "EntryDate", "LegalBasis", "SanctionsPrograms"]
+            headers = ["OFAC_ID", "PrimaryName", "Type", "PartyComment", "Aliases"] + sanctions_cols + f_names
+            
+            cw = csv.writer(ChunkWriter(self.wfile))
+            cw.writerow(headers)
+            
+            for pid, p in db.profiles.items():
+                primary_name = db.get_profile_primary_name(p)
+                pType = p.get("PartySubTypeID", {}).get("value", "") if isinstance(p.get("PartySubTypeID"), dict) else str(p.get("PartySubTypeID", ""))
+                
+                aliases = []
+                for ident in p.get('Identity', []):
+                    for alias in ident.get('Alias', []):
+                        if alias.get('Primary') != 'true':
+                            formatted = db.format_alias_name(alias, ident)
+                            if formatted:
+                                aliases.append(formatted)
+                
+                feature_map = {n: [] for n in f_names}
+                for f in p.get('Feature', []):
+                    ftype = f.get('FeatureTypeID', {}).get('value', '') if isinstance(f.get('FeatureTypeID'), dict) else str(f.get('FeatureTypeID', ''))
+                    for fv in f.get('FeatureVersion', []):
+                        detail = ""
+                        for loc in fv.get('VersionLocation', []):
+                            locid = loc.get('LocationID', {})
+                            loc_str = locid.get('value') or locid.get('id') if isinstance(locid, dict) else str(locid)
+                            if loc_str: detail += loc_str + " "
+                        for vd in fv.get('VersionDetail', []):
+                            if 'text' in vd: detail += vd['text'] + " "
+                            drObj = vd.get('DetailReferenceID', {})
+                            drStr = drObj.get('value') or drObj.get('id') if isinstance(drObj, dict) else str(drObj)
+                            if drStr and drStr != '{}': detail += drStr + " "
+                        for c in fv.get('Comment', []):
+                            if 'text' in c: detail += "[" + c['text'] + "] "
+                        for dp in fv.get('DatePeriod', []):
+                            start = dp.get('Start', [])
+                            if start and 'From' in start[0]:
+                                from_date = start[0]['From'][0]
+                                y = from_date.get('Year', [{}])[0].get('text', '')
+                                m = from_date.get('Month', [{}])[0].get('text', '')
+                                d = from_date.get('Day', [{}])[0].get('text', '')
+                                date_str = "-".join([x for x in [y, m, d] if x])
+                                detail += date_str + " "
+                        if detail.strip() and ftype in feature_map:
+                            feature_map[ftype].append(detail.strip())
+                
+                se_lists, se_dates, se_legal, se_programs = [], [], [], []
+                for se in p.get('SanctionsEntries', []):
+                    if se.get('ListName'): se_lists.append(se['ListName'])
+                    if se.get('EntryDate'): se_dates.append(se['EntryDate'])
+                    if se.get('LegalBasis'): se_legal.append(se['LegalBasis'])
+                    for sm in se.get('SanctionsMeasures', []):
+                        if sm.get('Comment'): se_programs.append(sm['Comment'])
+                
+                pComment = p.get('DistinctPartyComment', '')
+                row_data = [
+                    p.get("ID", ""), primary_name, pType, pComment, "; ".join(aliases),
+                    "; ".join(se_lists), "; ".join(se_dates), "; ".join(se_legal), "; ".join(se_programs)
+                ]
+                for fn in f_names:
+                    row_data.append("; ".join(feature_map[fn]))
+                cw.writerow(row_data)
+            
         elif path.startswith("/api/export/"):
             dataset = path.split("/")[-1]
             if dataset == "ReferenceValueSets":

@@ -52,3 +52,8 @@ All notable changes to the **OFAC SDN Advanced Search API** project will be docu
 - **Multi-Select Program Filter**: Added an interactive filter dropdown to both the Unique Search and Batch Search tabs. Users can select one or more sanctions programs (73 available) to narrow search results to only profiles tagged with those programs.
 - **Server-Side Filtering**: Search results are filtered server-side via query parameters (unique search) or HTTP headers (batch search), ensuring only matching profiles are returned.
 - **Dynamic Program Discovery**: All unique program names are collected during database loading and exposed via the `/api/status` endpoint for automatic UI population.
+
+## [1.7.0] - Full Database Export
+- **Streamed Full Database Export**: Implemented a memory-efficient backend endpoint `/api/export/all` that flattens and streams the entire 18,698 profile database directly into a single CSV file.
+- **Header Export Button**: Added a primary action button in the application header for one-click access to the full dataset export.
+- **Memory Optimized CSV Generation**: Utilized chunked writing to handle large datasets natively without exceeding server RAM limits.

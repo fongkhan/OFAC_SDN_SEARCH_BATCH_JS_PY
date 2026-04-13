@@ -15,6 +15,7 @@ A robust, fully standalone web application for indexing, querying, and exporting
 - **Interactive Dataset Explorer**: Browse and search raw XML datasets (Locations, IDRegDocuments, ProfileRelationships, SanctionsEntries, ReferenceValueSets) directly in the browser with streaming query limits.
 - **Dark/Light Theme Toggle**: Full theme support with `localStorage` persistence across sessions.
 - **Hot-Swappable Datasets**: Upload new XML files via the UI to reload the database without restarting the server.
+- **Full Database Export**: One-click download of the entire processed and flattened database via a dedicated button in the header.
 
 ---
 
@@ -51,6 +52,7 @@ No installation required beyond a Python 3 runtime.
 | `GET` | `/api/search/unique?q=<query>&programs=<P1,P2>` | Search profiles by name/ID, optionally filtered by programs |
 | `GET` | `/api/search/dataset?type=<name>&q=<query>` | Search raw datasets (max 100 results) |
 | `GET` | `/api/export/<dataset>` | Download full dataset as CSV or ZIP |
+| `GET` | `/api/export/all` | Download the entire processed database as a flattened CSV |
 | `GET` | `/api/template` | Download batch search CSV template |
 | `POST` | `/api/search/batch` | Upload CSV for batch matching (header `X-Programs` for filtering) |
 | `POST` | `/api/upload` | Upload new `sdn_advanced.xml` to reload database |

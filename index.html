@@ -10,7 +10,10 @@
 <body>
     <div class="app-container">
         <header class="glass-panel text-center" style="position:relative;">
-            <button id="themeToggleBtn" class="btn secondary" style="position:absolute; right:20px; top:20px;">Light Mode</button>
+            <div style="position:absolute; right:20px; top:20px; display:flex; gap:8px;">
+                <a href="/api/export/all" class="btn primary" style="padding:8px 16px; font-size:0.85em; text-decoration:none;">Export Full Database</a>
+                <button id="themeToggleBtn" class="btn secondary" style="padding:8px 16px; font-size:0.85em;">Light Mode</button>
+            </div>
             <h1>OFAC Advanced Search</h1>
             <p>Database Status: <span id="dbSearchStatus" class="status-indicator">Checking...</span></p>
         </header>
